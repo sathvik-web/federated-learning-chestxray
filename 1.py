@@ -4,8 +4,6 @@ import numpy as np
 import tensorflow as tf
 import flwr as fl
 import matplotlib.pyplot as plt
-
-# Robust import for ImageDataGenerator
 try:
     from tensorflow.keras.preprocessing.image import ImageDataGenerator
 except Exception:
@@ -16,8 +14,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 def load_subset_data(base_path, subset_size=500, img_size=(150, 150), num_clients=3):
     train_dir = os.path.join(base_path, "train")
     test_dir = os.path.join(base_path, "test")
-
-    # Data augmentation for better generalization
     datagen = ImageDataGenerator(
         rescale=1./255,
         rotation_range=15,
@@ -26,7 +22,6 @@ def load_subset_data(base_path, subset_size=500, img_size=(150, 150), num_client
         horizontal_flip=True
     )
 
-    # Flow only a subset of images
     train_gen = datagen.flow_from_directory(
         train_dir,
         target_size=img_size,
@@ -45,7 +40,6 @@ def load_subset_data(base_path, subset_size=500, img_size=(150, 150), num_client
     x_train, y_train = next(train_gen)
     x_test, y_test = next(test_gen)
 
-    # Split among clients
     client_data = []
     splits = np.array_split(np.arange(len(x_train)), num_clients)
     for i in range(num_clients):
@@ -54,7 +48,6 @@ def load_subset_data(base_path, subset_size=500, img_size=(150, 150), num_client
 
     return client_data, (x_test, y_test)
 
-# CNN / ResNet Model
 def create_model(input_shape=(150,150,3)):
     base_model = tf.keras.applications.ResNet50(weights=None, include_top=False, input_shape=input_shape)
     model = tf.keras.Sequential([
@@ -68,7 +61,6 @@ def create_model(input_shape=(150,150,3)):
     model.compile(optimizer=optimizer, loss="binary_crossentropy", metrics=["accuracy"])
     return model
 
-# Flower Client
 class HospitalClient(fl.client.NumPyClient):
     def __init__(self, model, x_train, y_train, x_test, y_test):
         self.model = model
@@ -86,20 +78,18 @@ class HospitalClient(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         self.model.set_weights(parameters)
         loss, acc = self.model.evaluate(self.x_test, self.y_test, verbose=0)
-        # Ensure float for proper metrics collection
         return float(loss), len(self.x_test), {"accuracy": float(acc)}
 
-# Main Federated Simulation
 if __name__ == "__main__":
 
     BASE_PATH = "C:/Users/sathv/OneDrive/Desktop/chest_xray"  
     NUM_CLIENTS = 3
     NUM_ROUNDS = 5  
 
-    print("📥 Loading subset of data...")
+    print("Loading subset of data...")
     client_datasets, (x_test, y_test) = load_subset_data(BASE_PATH, subset_size=1000, num_clients=NUM_CLIENTS)
 
-    print("\n🏋️ Training centralized model for comparison...")
+    print("\n Training centralized model for comparison...")
     centralized_model = create_model()
     centralized_model.fit(
         np.concatenate([ds[0] for ds in client_datasets]),
@@ -117,7 +107,6 @@ if __name__ == "__main__":
         x_train, y_train = client_datasets[cid_int]
         return HospitalClient(model, x_train, y_train, x_test, y_test)
 
-    # FedAvg strategy
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1.0,
         fraction_evaluate=1.0,
@@ -126,8 +115,7 @@ if __name__ == "__main__":
         min_available_clients=NUM_CLIENTS,
     )
 
-    # Start federated simulation
-    print("\n🚀 Starting Federated Learning Simulation...")
+    print("\n Starting Federated Learning Simulation...")
     history = fl.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=NUM_CLIENTS,
@@ -135,9 +123,8 @@ if __name__ == "__main__":
         strategy=strategy
     )
 
-    print("\n✅ Simulation Complete!")
+    print("\n Simulation Complete!")
 
-    # Plot metrics
     print("Recorded metrics:", history.metrics_distributed.keys())
 
     rounds = list(range(1, len(history.losses_distributed)+1))
@@ -151,4 +138,5 @@ if __name__ == "__main__":
         plt.grid(True)
         plt.show()
     else:
-        print("⚠️ Accuracy metric not found in history.")
+        print("Accuracy metric not found in history.")
+
