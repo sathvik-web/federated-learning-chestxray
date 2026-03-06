@@ -5,3 +5,5 @@ To solve this, we implemented a Federated Learning (FL) framework that allows ho
 ## Dataset Used
 Chest X-ray images(Pneumonia) from kaggle :-
 <a href="https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia">Dataset Link</a>
+
+<img width="1164" height="761" alt="Screenshot 2025-10-16 135825" src="https://github.com/user-attachments/assets/cca8cb1a-3af2-421c-929a-74b3792c59b5" />
